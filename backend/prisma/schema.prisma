@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  nome         String
+  email        String   @unique
+  senha        String
+  role         Role     @default(ADMIN)
+  ativo        Boolean  @default(true)
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  alunos       Aluno[]
+
+  @@map("users")
+}
+
+model Aluno {
+  id           String     @id @default(uuid())
+  nome         String
+  cpf          String     @unique
+  email        String?
+  telefone     String?
+  dataNasc     DateTime?
+  endereco     String?
+  foto         String?
+  ativo        Boolean    @default(true)
+  criadoEm    DateTime   @default(now())
+  atualizadoEm DateTime   @updatedAt
+  adminId      String
+  admin        User       @relation(fields: [adminId], references: [id])
+  matriculas   Matricula[]
+
+  @@index([cpf])
+  @@index([nome])
+  @@map("alunos")
+}
+
+model Plano {
+  id           String      @id @default(uuid())
+  nome         String
+  descricao    String?
+  valorMensal  Decimal     @db.Decimal(10, 2)
+  valorTotal   Decimal     @db.Decimal(10, 2)
+  duracaoDias  Int
+  ativo        Boolean     @default(true)
+  criadoEm    DateTime    @default(now())
+  atualizadoEm DateTime    @updatedAt
+  matriculas   Matricula[]
+
+  @@map("planos")
+}
+
+model Matricula {
+  id           String          @id @default(uuid())
+  dataInicio   DateTime
+  dataFim      DateTime
+  status       StatusMatricula @default(ATIVA)
+  observacoes  String?
+  criadoEm    DateTime        @default(now())
+  atualizadoEm DateTime        @updatedAt
+  alunoId      String
+  planoId      String
+  aluno        Aluno           @relation(fields: [alunoId], references: [id])
+  plano        Plano           @relation(fields: [planoId], references: [id])
+  pagamentos   Pagamento[]
+
+  @@index([alunoId])
+  @@index([status])
+  @@index([dataFim])
+  @@map("matriculas")
+}
+
+model Pagamento {
+  id              String           @id @default(uuid())
+  valor           Decimal          @db.Decimal(10, 2)
+  dataVencimento  DateTime
+  dataPagamento   DateTime?
+  status          StatusPagamento  @default(PENDENTE)
+  metodoPagamento MetodoPagamento?
+  referenciaMes   String
+  observacoes     String?
+  criadoEm       DateTime         @default(now())
+  atualizadoEm   DateTime         @updatedAt
+  matriculaId     String
+  matricula       Matricula        @relation(fields: [matriculaId], references: [id])
+
+  @@index([matriculaId])
+  @@index([status])
+  @@index([dataVencimento])
+  @@index([referenciaMes])
+  @@map("pagamentos")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  RECEPCIONISTA
+}
+
+enum StatusMatricula {
+  ATIVA
+  SUSPENSA
+  CANCELADA
+  EXPIRADA
+}
+
+enum StatusPagamento {
+  PENDENTE
+  PAGO
+  ATRASADO
+  CANCELADO
+}
+
+enum MetodoPagamento {
+  PIX
+  CARTAO_CREDITO
+  CARTAO_DEBITO
+  DINHEIRO
+  BOLETO
+}
